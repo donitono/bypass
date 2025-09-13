@@ -307,6 +307,89 @@ local VerboseModeToggle = SettingsTab:CreateToggle({
     end,
 })
 
+-- Randomization Settings
+local RandomizationSection = SettingsTab:CreateSection("🎲 Randomization Settings")
+
+local EnableRandomizationToggle = SettingsTab:CreateToggle({
+    Name = "Enable Randomization",
+    CurrentValue = true,
+    Flag = "EnableRandomization",
+    Callback = function(Value)
+        if AutomationCore and AutomationCore.SetFlag then
+            AutomationCore.SetFlag("enablerandomization", Value)
+            Utils.Notify("Randomization", Value and "Enabled - More realistic gameplay" or "Disabled - Perfect casts", 3)
+        end
+    end,
+})
+
+local CastPowerMinSlider = SettingsTab:CreateSlider({
+    Name = "Min Cast Power (%)",
+    Range = {50, 95},
+    Increment = 1,
+    Suffix = "%",
+    CurrentValue = 70,
+    Flag = "CastPowerMin",
+    Callback = function(Value)
+        if AutomationCore and AutomationCore.SetFlag then
+            AutomationCore.SetFlag("castpowermin", Value)
+        end
+    end,
+})
+
+local CastPowerMaxSlider = SettingsTab:CreateSlider({
+    Name = "Max Cast Power (%)",
+    Range = {70, 100},
+    Increment = 1,
+    Suffix = "%",
+    CurrentValue = 95,
+    Flag = "CastPowerMax",
+    Callback = function(Value)
+        if AutomationCore and AutomationCore.SetFlag then
+            AutomationCore.SetFlag("castpowermax", Value)
+        end
+    end,
+})
+
+local ReelAccuracyMinSlider = SettingsTab:CreateSlider({
+    Name = "Min Reel Accuracy (%)",
+    Range = {60, 95},
+    Increment = 1,
+    Suffix = "%",
+    CurrentValue = 75,
+    Flag = "ReelAccuracyMin",
+    Callback = function(Value)
+        if AutomationCore and AutomationCore.SetFlag then
+            AutomationCore.SetFlag("reelaccuracymin", Value)
+        end
+    end,
+})
+
+local ReelAccuracyMaxSlider = SettingsTab:CreateSlider({
+    Name = "Max Reel Accuracy (%)",
+    Range = {80, 100},
+    Increment = 1,
+    Suffix = "%",
+    CurrentValue = 100,
+    Flag = "ReelAccuracyMax",
+    Callback = function(Value)
+        if AutomationCore and AutomationCore.SetFlag then
+            AutomationCore.SetFlag("reelaccuracymax", Value)
+        end
+    end,
+})
+
+local RandomDelayToggle = SettingsTab:CreateToggle({
+    Name = "Randomize Delays",
+    CurrentValue = true,
+    Flag = "RandomizeDelays",
+    Callback = function(Value)
+        if AutomationCore and AutomationCore.SetFlag then
+            AutomationCore.SetFlag("randomizedelay", Value)
+            Utils.Notify("Delay Randomization", Value and "Enabled" or "Disabled", 2)
+        end
+    end,
+})
+
 --// VISUAL TAB
 local VisualTab = Window:CreateTab("👁️ Visual", 4483362458)
 

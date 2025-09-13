@@ -77,6 +77,16 @@ local autoFishingLoopActive = false
 local lastProgressTime = 0
 local selectedRodName = ""
 
+-- Randomization Settings
+flags['enablerandomization'] = true
+flags['castpowermin'] = 70
+flags['castpowermax'] = 95
+flags['reelaccuracymin'] = 75
+flags['reelaccuracymax'] = 100
+flags['randomizedelay'] = true
+flags['delayvariationmin'] = 0.1
+flags['delayvariationmax'] = 0.8
+
 -- Zone Cast System
 flags['autozonecast'] = false
 local selectedZoneCast = ""
@@ -98,11 +108,33 @@ local function safeExecute(actionFunc, actionName, baseDelay)
         -- Fallback without detection bypass
         local delay = baseDelay or 0.5
         task.wait(delay + math.random() * 0.2) -- Add small random delay
-        local success = false
-        pcall(function()
-            success = actionFunc()
-        end)
-        return success
+        return actionFunc()
+    end
+end
+
+-- Randomization Helper Functions
+local function getRandomCastPower()
+    if flags['enablerandomization'] then
+        return math.random(flags['castpowermin'], flags['castpowermax'])
+    else
+        return 100 -- Default perfect cast
+    end
+end
+
+local function getRandomReelAccuracy()
+    if flags['enablerandomization'] then
+        return math.random(flags['reelaccuracymin'], flags['reelaccuracymax'])
+    else
+        return 100 -- Default perfect reel
+    end
+end
+
+local function getRandomDelay(baseDelay)
+    if flags['randomizedelay'] then
+        local variation = math.random() * (flags['delayvariationmax'] - flags['delayvariationmin']) + flags['delayvariationmin']
+        return baseDelay + variation
+    else
+        return baseDelay
     end
 end
 
@@ -300,7 +332,8 @@ local function setupSuperInstantReel()
                         -- Ultra-instant catch when fish bites
                         if lureValue >= 95 or biteValue == true then
                             for i = 1, 5 do
-                                ReplicatedStorage.events.reelfinished:FireServer(100, true)
+                                local reelAccuracy = getRandomReelAccuracy()
+                                ReplicatedStorage.events.reelfinished:FireServer(reelAccuracy, true)
                             end
                             
                             local reelGui = lp.PlayerGui:FindFirstChild("reel")
@@ -338,7 +371,8 @@ local function setupSuperInstantReel()
                 end)
                 
                 pcall(function()
-                    ReplicatedStorage.events.reelfinished:FireServer(100, true)
+                    local reelAccuracy = getRandomReelAccuracy()
+                    ReplicatedStorage.events.reelfinished:FireServer(reelAccuracy, true)
                 end)
             end
         end)
@@ -623,7 +657,8 @@ local function runMainLoop()
                 if flags['noanimationautocast'] then
                     rod.events.cast:FireServer(-25, 1)
                 elseif flags['autocastarmmovement'] then
-                    rod.events.cast:FireServer(100, 1)
+                    local castPower = getRandomCastPower()
+                    rod.events.cast:FireServer(castPower, 1)
                 elseif flags['enhancedinstantbobber'] then
                     rod.events.cast:FireServer(-500, 1)
                 elseif flags['instantbobber'] then
@@ -648,7 +683,8 @@ local function runMainLoop()
                 if flags['noanimationautocast'] then
                     rod.events.cast:FireServer(-25, 1)
                 elseif flags['autocastarmmovement'] then
-                    rod.events.cast:FireServer(100, 1)
+                    local castPower = getRandomCastPower()
+                    rod.events.cast:FireServer(castPower, 1)
                 elseif flags['enhancedinstantbobber'] then
                     rod.events.cast:FireServer(-500, 1)
                 elseif flags['instantbobber'] then
@@ -667,7 +703,8 @@ local function runMainLoop()
         local currentDelay = flags['autoreeldelay'] or 0.5
         if rod ~= nil and rod['values']['lure'].Value == 100 then
             safeExecute(function()
-                ReplicatedStorage.events.reelfinished:FireServer(100, true)
+                local reelAccuracy = getRandomReelAccuracy()
+                ReplicatedStorage.events.reelfinished:FireServer(reelAccuracy, true)
                 return true
             end, "AutoReel", currentDelay)
         end
@@ -682,7 +719,8 @@ local function runMainLoop()
             
             if lureValue >= 98 or biteValue == true then
                 pcall(function()
-                    ReplicatedStorage.events.reelfinished:FireServer(100, true)
+                    local reelAccuracy = getRandomReelAccuracy()
+                    ReplicatedStorage.events.reelfinished:FireServer(reelAccuracy, true)
                     
                     -- Predictive autocast integration
                     if flags['predictiveautocast'] and flags['autocast'] then
@@ -785,6 +823,27 @@ function AutomationCore.Stop()
     end
     
     superInstantReelActive = false
+end
+
+-- Set flag function for UI integration
+function AutomationCore.SetFlag(flagName, value)
+    if flags[flagName] ~= nil then
+        flags[flagName] = value
+        return true
+    else
+        warn("Flag '" .. tostring(flagName) .. "' does not exist")
+        return false
+    end
+end
+
+-- Get flag function for UI integration  
+function AutomationCore.GetFlag(flagName)
+    return flags[flagName]
+end
+
+-- Get all flags for debugging
+function AutomationCore.GetAllFlags()
+    return flags
 end
 
 -- Initialize automation
