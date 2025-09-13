@@ -16,6 +16,7 @@
 -- Services
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
 -- Variables
 local lp = Players.LocalPlayer
@@ -333,6 +334,219 @@ local function getDynamicZonePosition(zoneName)
     return nil
 end
 
+    return nil
+end
+
+--// PLAYER TELEPORT SYSTEM
+
+-- Get all players in the server
+local function getAllPlayers()
+    local playerList = {}
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= lp and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            table.insert(playerList, player)
+        end
+    end
+    return playerList
+end
+
+-- Get player by name (partial match)
+local function findPlayerByName(playerName)
+    local searchName = playerName:lower()
+    local bestMatch = nil
+    local bestScore = 0
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= lp then
+            local displayName = (player.DisplayName or player.Name):lower()
+            local userName = player.Name:lower()
+            
+            -- Exact match
+            if displayName == searchName or userName == searchName then
+                return player
+            end
+            
+            -- Partial match scoring
+            local displayScore = 0
+            local userScore = 0
+            
+            if displayName:find(searchName) then
+                displayScore = #searchName / #displayName
+            end
+            
+            if userName:find(searchName) then
+                userScore = #searchName / #userName
+            end
+            
+            local score = math.max(displayScore, userScore)
+            if score > bestScore then
+                bestScore = score
+                bestMatch = player
+            end
+        end
+    end
+    
+    return bestMatch
+end
+
+-- Get player names list
+local function getPlayerNames()
+    local names = {}
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= lp then
+            local displayName = player.DisplayName ~= player.Name and 
+                               (player.DisplayName .. " (@" .. player.Name .. ")") or 
+                               player.Name
+            table.insert(names, {
+                display = displayName,
+                player = player,
+                name = player.Name,
+                displayName = player.DisplayName
+            })
+        end
+    end
+    
+    -- Sort by name
+    table.sort(names, function(a, b)
+        return a.name:lower() < b.name:lower()
+    end)
+    
+    return names
+end
+
+-- Teleport to player
+local function teleportToPlayer(player)
+    if not player or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+        return false, "Player not found or invalid"
+    end
+    
+    if not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then
+        return false, "Local character not found"
+    end
+    
+    local targetPosition = player.Character.HumanoidRootPart.CFrame
+    -- Offset slightly to avoid collision
+    local offsetPosition = targetPosition * CFrame.new(math.random(-5, 5), 0, math.random(-5, 5))
+    
+    return safeTeleport(offsetPosition)
+end
+
+-- Smooth teleport to player
+local function smoothTeleportToPlayer(player, duration)
+    if not player or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+        return false, "Player not found or invalid"
+    end
+    
+    local targetPosition = player.Character.HumanoidRootPart.CFrame
+    local offsetPosition = targetPosition * CFrame.new(math.random(-3, 3), 0, math.random(-3, 3))
+    
+    return smoothTeleport(offsetPosition, duration)
+end
+
+-- Get player distance
+local function getPlayerDistance(player)
+    if not player or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+        return math.huge
+    end
+    
+    if not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then
+        return math.huge
+    end
+    
+    local myPos = lp.Character.HumanoidRootPart.Position
+    local theirPos = player.Character.HumanoidRootPart.Position
+    
+    return (myPos - theirPos).Magnitude
+end
+
+-- Get nearest player
+local function getNearestPlayer()
+    local nearestPlayer = nil
+    local nearestDistance = math.huge
+    
+    for _, player in pairs(getAllPlayers()) do
+        local distance = getPlayerDistance(player)
+        if distance < nearestDistance then
+            nearestDistance = distance
+            nearestPlayer = player
+        end
+    end
+    
+    return nearestPlayer, nearestDistance
+end
+
+-- Auto-follow player system
+local autoFollowTarget = nil
+local autoFollowConnection = nil
+
+local function startAutoFollow(player)
+    if not player then return false, "Invalid player" end
+    
+    stopAutoFollow() -- Stop any existing follow
+    
+    autoFollowTarget = player
+    autoFollowConnection = RunService.Heartbeat:Connect(function()
+        if autoFollowTarget and autoFollowTarget.Character and 
+           autoFollowTarget.Character:FindFirstChild("HumanoidRootPart") and
+           lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+            
+            local targetPos = autoFollowTarget.Character.HumanoidRootPart.Position
+            local myPos = lp.Character.HumanoidRootPart.Position
+            local distance = (targetPos - myPos).Magnitude
+            
+            -- Only teleport if distance is greater than 10 studs
+            if distance > 10 then
+                local offsetPos = autoFollowTarget.Character.HumanoidRootPart.CFrame * CFrame.new(
+                    math.random(-3, 3), 0, math.random(-3, 3)
+                )
+                pcall(function()
+                    lp.Character.HumanoidRootPart.CFrame = offsetPos
+                end)
+            end
+        else
+            -- Target left, stop following
+            stopAutoFollow()
+        end
+    end)
+    
+    return true, "Auto-follow started for " .. player.Name
+end
+
+local function stopAutoFollow()
+    if autoFollowConnection then
+        autoFollowConnection:Disconnect()
+        autoFollowConnection = nil
+    end
+    autoFollowTarget = nil
+    return true, "Auto-follow stopped"
+end
+
+-- Bring all players to you (if you have admin/higher permissions)
+local function bringAllPlayers()
+    if not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then
+        return false, "Local character not found"
+    end
+    
+    local myPosition = lp.Character.HumanoidRootPart.CFrame
+    local count = 0
+    
+    for _, player in pairs(getAllPlayers()) do
+        pcall(function()
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local offset = CFrame.new(
+                    math.random(-10, 10), 
+                    0, 
+                    math.random(-10, 10)
+                )
+                player.Character.HumanoidRootPart.CFrame = myPosition * offset
+                count = count + 1
+            end
+        end)
+    end
+    
+    return true, "Attempted to bring " .. count .. " players"
+end
+
 --// GPS COORDINATE SYSTEM
 
 local GPS = {
@@ -535,5 +749,17 @@ function TeleportCore.TeleportToCategory(category)
     
     return false, "No locations in category: " .. tostring(category)
 end
+
+-- Add player teleport functions to TeleportCore
+TeleportCore.getAllPlayers = getAllPlayers
+TeleportCore.findPlayerByName = findPlayerByName
+TeleportCore.getPlayerNames = getPlayerNames
+TeleportCore.teleportToPlayer = teleportToPlayer
+TeleportCore.smoothTeleportToPlayer = smoothTeleportToPlayer
+TeleportCore.getPlayerDistance = getPlayerDistance
+TeleportCore.getNearestPlayer = getNearestPlayer
+TeleportCore.startAutoFollow = startAutoFollow
+TeleportCore.stopAutoFollow = stopAutoFollow
+TeleportCore.bringAllPlayers = bringAllPlayers
 
 return TeleportCore

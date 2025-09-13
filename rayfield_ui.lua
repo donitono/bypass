@@ -527,6 +527,181 @@ TeleportTab:CreateButton({
     end,
 })
 
+-- Player Teleport Section
+local PlayerSection = TeleportTab:CreateSection("👥 Player Teleports")
+
+local selectedPlayerName = ""
+local followingPlayer = false
+
+local PlayerDropdown = TeleportTab:CreateDropdown({
+    Name = "Select Player",
+    Options = {"Loading players..."},
+    CurrentOption = "Loading players...",
+    Flag = "SelectedPlayer",
+    Callback = function(Option)
+        selectedPlayerName = Option
+    end,
+})
+
+-- Function to refresh player list
+local function refreshPlayerList()
+    local playerNames = TeleportCore.getPlayerNames()
+    local dropdownOptions = {}
+    
+    for _, playerData in ipairs(playerNames) do
+        table.insert(dropdownOptions, playerData.display)
+    end
+    
+    if #dropdownOptions == 0 then
+        dropdownOptions = {"No players online"}
+    end
+    
+    -- Update dropdown options
+    pcall(function()
+        PlayerDropdown:SetOptions(dropdownOptions)
+        if #dropdownOptions > 0 and dropdownOptions[1] ~= "No players online" then
+            selectedPlayerName = dropdownOptions[1]
+            PlayerDropdown:Set(dropdownOptions[1])
+        end
+    end)
+end
+
+-- Auto-refresh player list every 5 seconds
+spawn(function()
+    while true do
+        refreshPlayerList()
+        wait(5)
+    end
+end)
+
+TeleportTab:CreateButton({
+    Name = "🔄 Refresh Player List",
+    Callback = function()
+        refreshPlayerList()
+        Utils.Notify("Player List", "Refreshed player list", 2)
+    end,
+})
+
+TeleportTab:CreateButton({
+    Name = "🚀 Teleport to Player",
+    Callback = function()
+        if selectedPlayerName == "" or selectedPlayerName == "Loading players..." or selectedPlayerName == "No players online" then
+            Utils.Notify("Player Teleport", "Please select a valid player first", 2)
+            return
+        end
+        
+        local playerNames = TeleportCore.getPlayerNames()
+        local targetPlayer = nil
+        
+        for _, playerData in ipairs(playerNames) do
+            if playerData.display == selectedPlayerName then
+                targetPlayer = playerData.player
+                break
+            end
+        end
+        
+        if targetPlayer then
+            local success, message = TeleportCore.teleportToPlayer(targetPlayer)
+            Utils.Notify("Player Teleport", message or ("Teleported to " .. targetPlayer.Name), 2)
+        else
+            Utils.Notify("Player Teleport", "Player not found or disconnected", 2)
+        end
+    end,
+})
+
+TeleportTab:CreateButton({
+    Name = "🎯 Teleport to Nearest Player", 
+    Callback = function()
+        local nearestPlayer, distance = TeleportCore.getNearestPlayer()
+        if nearestPlayer then
+            local success, message = TeleportCore.teleportToPlayer(nearestPlayer)
+            Utils.Notify("Player Teleport", 
+                message or ("Teleported to " .. nearestPlayer.Name .. " (" .. math.floor(distance) .. "m away)"), 3)
+        else
+            Utils.Notify("Player Teleport", "No players found nearby", 2)
+        end
+    end,
+})
+
+local AutoFollowToggle = TeleportTab:CreateToggle({
+    Name = "🔗 Auto Follow Player",
+    CurrentValue = false,
+    Flag = "AutoFollow",
+    Callback = function(Value)
+        if Value then
+            if selectedPlayerName == "" or selectedPlayerName == "Loading players..." or selectedPlayerName == "No players online" then
+                Utils.Notify("Auto Follow", "Please select a valid player first", 2)
+                AutoFollowToggle:Set(false)
+                return
+            end
+            
+            local playerNames = TeleportCore.getPlayerNames()
+            local targetPlayer = nil
+            
+            for _, playerData in ipairs(playerNames) do
+                if playerData.display == selectedPlayerName then
+                    targetPlayer = playerData.player
+                    break
+                end
+            end
+            
+            if targetPlayer then
+                local success, message = TeleportCore.startAutoFollow(targetPlayer)
+                Utils.Notify("Auto Follow", message, 2)
+                followingPlayer = true
+            else
+                Utils.Notify("Auto Follow", "Player not found", 2)
+                AutoFollowToggle:Set(false)
+            end
+        else
+            local success, message = TeleportCore.stopAutoFollow()
+            Utils.Notify("Auto Follow", message, 2)
+            followingPlayer = false
+        end
+    end,
+})
+
+TeleportTab:CreateButton({
+    Name = "📢 Bring All Players (Admin)", 
+    Callback = function()
+        local success, message = TeleportCore.bringAllPlayers()
+        Utils.Notify("Bring Players", message, 3)
+    end,
+})
+
+-- Show player distances
+TeleportTab:CreateButton({
+    Name = "📏 Show Player Distances",
+    Callback = function()
+        local players = TeleportCore.getAllPlayers()
+        if #players == 0 then
+            Utils.Notify("Player Distances", "No players online", 2)
+            return
+        end
+        
+        local distances = {}
+        for _, player in ipairs(players) do
+            local distance = TeleportCore.getPlayerDistance(player)
+            table.insert(distances, {
+                name = player.Name,
+                distance = math.floor(distance)
+            })
+        end
+        
+        -- Sort by distance
+        table.sort(distances, function(a, b) return a.distance < b.distance end)
+        
+        local message = "Player Distances:\n"
+        for i, data in ipairs(distances) do
+            if i <= 5 then -- Show only top 5 closest
+                message = message .. data.name .. ": " .. data.distance .. "m\n"
+            end
+        end
+        
+        Utils.Notify("Player Distances", message, 5)
+    end,
+})
+
 -- Category-based teleport dropdowns
 for _, category in pairs(TeleportCategories) do
     local categorySection = TeleportTab:CreateSection(category)
