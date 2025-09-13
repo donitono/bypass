@@ -18,6 +18,19 @@
     Note: All debug information and console outputs removed for clean code
 ]]--
 
+-- Load Detection Bypass System (Optional)
+local DetectionBypass = nil
+pcall(function()
+    DetectionBypass = loadstring(game:HttpGet('https://raw.githubusercontent.com/donitono/bypass/main/detection_bypass.lua'))()
+    if DetectionBypass then
+        -- Configure for safer automation
+        DetectionBypass.SetConfig("VerboseMode", false)
+        DetectionBypass.SetConfig("AlertMode", false) 
+        DetectionBypass.SetConfig("MaxActionsPerMinute", 45)
+        DetectionBypass.SetConfig("DelayVariation", 0.4)
+    end
+end)
+
 -- Services
 local Players = game:GetService('Players')
 local ReplicatedStorage = game:GetService('ReplicatedStorage')
@@ -77,7 +90,21 @@ local lureMonitorConnection = nil
 flags['freezechar'] = false
 flags['freezecharmode'] = 'Toggled'
 
---// UTILITY FUNCTIONS
+-- Safe execution wrapper
+local function safeExecute(actionFunc, actionName, baseDelay)
+    if DetectionBypass then
+        return DetectionBypass.SafeExecute(actionFunc, baseDelay or 0.5)
+    else
+        -- Fallback without detection bypass
+        local delay = baseDelay or 0.5
+        task.wait(delay + math.random() * 0.2) -- Add small random delay
+        local success = false
+        pcall(function()
+            success = actionFunc()
+        end)
+        return success
+    end
+end
 
 -- Find Rod Function
 function FindRod()
@@ -616,19 +643,21 @@ local function runMainLoop()
         end
         
         if rod ~= nil and rod['values']['lure'].Value <= .001 then
-            task.wait(currentDelay)
-            
-            if flags['noanimationautocast'] then
-                rod.events.cast:FireServer(-25, 1)
-            elseif flags['autocastarmmovement'] then
-                rod.events.cast:FireServer(100, 1)
-            elseif flags['enhancedinstantbobber'] then
-                rod.events.cast:FireServer(-500, 1)
-            elseif flags['instantbobber'] then
-                rod.events.cast:FireServer(-250, 1)
-            else
-                rod.events.cast:FireServer(-25, 1)
-            end
+            -- Use safe execution for casting
+            safeExecute(function()
+                if flags['noanimationautocast'] then
+                    rod.events.cast:FireServer(-25, 1)
+                elseif flags['autocastarmmovement'] then
+                    rod.events.cast:FireServer(100, 1)
+                elseif flags['enhancedinstantbobber'] then
+                    rod.events.cast:FireServer(-500, 1)
+                elseif flags['instantbobber'] then
+                    rod.events.cast:FireServer(-250, 1)
+                else
+                    rod.events.cast:FireServer(-25, 1)
+                end
+                return true
+            end, "AutoCast", currentDelay)
         end
     end
     
@@ -637,8 +666,10 @@ local function runMainLoop()
         local rod = FindRod()
         local currentDelay = flags['autoreeldelay'] or 0.5
         if rod ~= nil and rod['values']['lure'].Value == 100 then
-            task.wait(currentDelay)
-            ReplicatedStorage.events.reelfinished:FireServer(100, true)
+            safeExecute(function()
+                ReplicatedStorage.events.reelfinished:FireServer(100, true)
+                return true
+            end, "AutoReel", currentDelay)
         end
     end
     
@@ -704,6 +735,31 @@ end
 
 function AutomationCore.GetRodsFromInventory()
     return getRodsFromInventory()
+end
+
+function AutomationCore.GetDetectionStatus()
+    if DetectionBypass then
+        return DetectionBypass.GetStatistics()
+    else
+        return {status = "Detection bypass not loaded", safe = true}
+    end
+end
+
+function AutomationCore.GetRiskLevel()
+    if DetectionBypass then
+        local riskLevel, riskText = DetectionBypass.GetRiskStatus()
+        return {level = riskLevel, text = riskText}
+    else
+        return {level = "UNKNOWN", text = "Detection bypass not available"}
+    end
+end
+
+function AutomationCore.PrintDetectionStatus()
+    if DetectionBypass then
+        DetectionBypass.PrintStatus()
+    else
+        print("🛡️ Detection Bypass: Not loaded - using basic safety delays")
+    end
 end
 
 function AutomationCore.Start()
