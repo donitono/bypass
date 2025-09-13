@@ -11,6 +11,9 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 -- Load Automation Core
 local AutomationCore = loadstring(game:HttpGet('https://raw.githubusercontent.com/donitono/bypass/main/automation_core.lua'))()
 
+-- Load Teleport Core
+local TeleportCore = loadstring(game:HttpGet('https://raw.githubusercontent.com/donitono/bypass/main/teleport_core.lua'))()
+
 -- UI Configuration
 local UIConfig = {
     Name = "Bypass Hub",
@@ -252,144 +255,6 @@ local AppraiseDelaySlider = SettingsTab:CreateSlider({
     end,
 })
 
--- Detection Bypass Settings
-local DetectionSection = SettingsTab:CreateSection("🛡️ Detection Bypass")
-
-local MaxActionsSlider = SettingsTab:CreateSlider({
-    Name = "Max Actions per Minute",
-    Range = {10, 90},
-    Increment = 5,
-    CurrentValue = 45,
-    Flag = "MaxActions",
-    Callback = function(Value)
-        -- Configure detection bypass if available
-        pcall(function()
-            local DetectionBypass = loadstring(game:HttpGet('https://raw.githubusercontent.com/donitono/bypass/main/detection_bypass.lua'))()
-            if DetectionBypass then
-                DetectionBypass.SetConfig("MaxActionsPerMinute", Value)
-                Utils.Notify("Rate Limit", "Set to " .. Value .. " actions/min", 2)
-            end
-        end)
-    end,
-})
-
-local DelayVariationSlider = SettingsTab:CreateSlider({
-    Name = "Delay Randomization",
-    Range = {0.0, 1.0},
-    Increment = 0.1,
-    CurrentValue = 0.4,
-    Flag = "DelayVariation",
-    Callback = function(Value)
-        pcall(function()
-            local DetectionBypass = loadstring(game:HttpGet('https://raw.githubusercontent.com/donitono/bypass/main/detection_bypass.lua'))()
-            if DetectionBypass then
-                DetectionBypass.SetConfig("DelayVariation", Value)
-                local percentage = math.floor(Value * 100)
-                Utils.Notify("Randomization", "Set to " .. percentage .. "% variation", 2)
-            end
-        end)
-    end,
-})
-
-local VerboseModeToggle = SettingsTab:CreateToggle({
-    Name = "Detection Debug Mode",
-    CurrentValue = false,
-    Flag = "VerboseMode",
-    Callback = function(Value)
-        pcall(function()
-            local DetectionBypass = loadstring(game:HttpGet('https://raw.githubusercontent.com/donitono/bypass/main/detection_bypass.lua'))()
-            if DetectionBypass then
-                DetectionBypass.SetConfig("VerboseMode", Value)
-                DetectionBypass.SetConfig("AlertMode", Value)
-                Utils.Notify("Debug Mode", Value and "Enabled - Check console" or "Disabled", 2)
-            end
-        end)
-    end,
-})
-
--- Randomization Settings
-local RandomizationSection = SettingsTab:CreateSection("🎲 Randomization Settings")
-
-local EnableRandomizationToggle = SettingsTab:CreateToggle({
-    Name = "Enable Randomization",
-    CurrentValue = true,
-    Flag = "EnableRandomization",
-    Callback = function(Value)
-        if AutomationCore and AutomationCore.SetFlag then
-            AutomationCore.SetFlag("enablerandomization", Value)
-            Utils.Notify("Randomization", Value and "Enabled - More realistic gameplay" or "Disabled - Perfect casts", 3)
-        end
-    end,
-})
-
-local CastPowerMinSlider = SettingsTab:CreateSlider({
-    Name = "Min Cast Power (%)",
-    Range = {50, 95},
-    Increment = 1,
-    Suffix = "%",
-    CurrentValue = 70,
-    Flag = "CastPowerMin",
-    Callback = function(Value)
-        if AutomationCore and AutomationCore.SetFlag then
-            AutomationCore.SetFlag("castpowermin", Value)
-        end
-    end,
-})
-
-local CastPowerMaxSlider = SettingsTab:CreateSlider({
-    Name = "Max Cast Power (%)",
-    Range = {70, 100},
-    Increment = 1,
-    Suffix = "%",
-    CurrentValue = 95,
-    Flag = "CastPowerMax",
-    Callback = function(Value)
-        if AutomationCore and AutomationCore.SetFlag then
-            AutomationCore.SetFlag("castpowermax", Value)
-        end
-    end,
-})
-
-local ReelAccuracyMinSlider = SettingsTab:CreateSlider({
-    Name = "Min Reel Accuracy (%)",
-    Range = {60, 95},
-    Increment = 1,
-    Suffix = "%",
-    CurrentValue = 75,
-    Flag = "ReelAccuracyMin",
-    Callback = function(Value)
-        if AutomationCore and AutomationCore.SetFlag then
-            AutomationCore.SetFlag("reelaccuracymin", Value)
-        end
-    end,
-})
-
-local ReelAccuracyMaxSlider = SettingsTab:CreateSlider({
-    Name = "Max Reel Accuracy (%)",
-    Range = {80, 100},
-    Increment = 1,
-    Suffix = "%",
-    CurrentValue = 100,
-    Flag = "ReelAccuracyMax",
-    Callback = function(Value)
-        if AutomationCore and AutomationCore.SetFlag then
-            AutomationCore.SetFlag("reelaccuracymax", Value)
-        end
-    end,
-})
-
-local RandomDelayToggle = SettingsTab:CreateToggle({
-    Name = "Randomize Delays",
-    CurrentValue = true,
-    Flag = "RandomizeDelays",
-    Callback = function(Value)
-        if AutomationCore and AutomationCore.SetFlag then
-            AutomationCore.SetFlag("randomizedelay", Value)
-            Utils.Notify("Delay Randomization", Value and "Enabled" or "Disabled", 2)
-        end
-    end,
-})
-
 --// VISUAL TAB
 local VisualTab = Window:CreateTab("👁️ Visual", 4483362458)
 
@@ -550,22 +415,157 @@ local ZoneCastDropdown = TeleportTab:CreateDropdown({
 })
 
 -- Add teleport locations here
-local TeleportLocations = {
-    ["Spawn"] = Vector3.new(0, 0, 0),
-    ["Shop"] = Vector3.new(100, 0, 100),
-    -- Add more locations as needed
+local TeleportCategories = TeleportCore.GetCategories()
+
+-- Quick Teleport Buttons for Popular Locations
+local popularLocations = {
+    "Moosewood",
+    "Roslit Bay", 
+    "Forsaken Shores",
+    "Ancient Isle",
+    "The Depths",
+    "Merchant",
+    "Appraiser"
 }
 
-for locationName, position in pairs(TeleportLocations) do
+for _, locationName in pairs(popularLocations) do
     TeleportTab:CreateButton({
-        Name = "Teleport to " .. locationName,
+        Name = "🚀 " .. locationName,
         Callback = function()
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(position)
-                Utils.Notify("Teleport", "Teleported to " .. locationName, 2)
-            end
+            local success, message = TeleportCore.Teleport(locationName)
+            Utils.Notify("Teleport", message or ("Teleported to " .. locationName), 2)
         end,
     })
+end
+
+-- GPS Teleport Section
+local GPSSection = TeleportTab:CreateSection("🧭 GPS Teleport")
+
+local gpsX, gpsY, gpsZ = 0, 150, 0
+
+local GPSXInput = TeleportTab:CreateInput({
+    Name = "GPS X Coordinate",
+    PlaceholderText = "Enter X coordinate...",
+    RemoveTextAfterFocusLost = false,
+    Flag = "GPSX",
+    Callback = function(Text)
+        local num = tonumber(Text)
+        if num then
+            gpsX = num
+            TeleportCore.SetGPS(gpsX, gpsY, gpsZ)
+        end
+    end,
+})
+
+local GPSYInput = TeleportTab:CreateInput({
+    Name = "GPS Y Coordinate",
+    PlaceholderText = "Enter Y coordinate (default: 150)...",
+    RemoveTextAfterFocusLost = false,
+    Flag = "GPSY",
+    Callback = function(Text)
+        local num = tonumber(Text)
+        if num then
+            gpsY = num
+            TeleportCore.SetGPS(gpsX, gpsY, gpsZ)
+        end
+    end,
+})
+
+local GPSZInput = TeleportTab:CreateInput({
+    Name = "GPS Z Coordinate", 
+    PlaceholderText = "Enter Z coordinate...",
+    RemoveTextAfterFocusLost = false,
+    Flag = "GPSZ",
+    Callback = function(Text)
+        local num = tonumber(Text)
+        if num then
+            gpsZ = num
+            TeleportCore.SetGPS(gpsX, gpsY, gpsZ)
+        end
+    end,
+})
+
+TeleportTab:CreateButton({
+    Name = "🚀 Teleport to GPS",
+    Callback = function()
+        local success, message = TeleportCore.TeleportToGPS(gpsX, gpsY, gpsZ)
+        Utils.Notify("GPS Teleport", message or ("Teleported to " .. gpsX .. ", " .. gpsY .. ", " .. gpsZ), 2)
+    end,
+})
+
+TeleportTab:CreateButton({
+    Name = "📍 Get Current Position",
+    Callback = function()
+        local currentGPS = TeleportCore.GetCurrentGPS()
+        if currentGPS then
+            gpsX, gpsY, gpsZ = currentGPS.x, currentGPS.y, currentGPS.z
+            TeleportCore.SetGPS(gpsX, gpsY, gpsZ)
+            Utils.Notify("GPS", "Current: " .. gpsX .. ", " .. gpsY .. ", " .. gpsZ, 3)
+        else
+            Utils.Notify("GPS", "Character not found", 2)
+        end
+    end,
+})
+
+TeleportTab:CreateButton({
+    Name = "🎲 Random Location",
+    Callback = function()
+        local success, message = TeleportCore.TeleportToRandomLocation()
+        Utils.Notify("Random Teleport", message or "Teleported to random location", 2)
+    end,
+})
+
+TeleportTab:CreateButton({
+    Name = "📍 Nearest Location Info",
+    Callback = function()
+        local nearestName, nearestCFrame, distance = TeleportCore.GetNearestLocation()
+        if nearestName then
+            Utils.Notify("Nearest Location", nearestName .. " (" .. math.floor(distance) .. "m away)", 3)
+        else
+            Utils.Notify("Nearest", "No locations found", 2)
+        end
+    end,
+})
+
+-- Category-based teleport dropdowns
+for _, category in pairs(TeleportCategories) do
+    local categorySection = TeleportTab:CreateSection(category)
+    local locations = TeleportCore.GetLocationsByCategory(category)
+    local locationNames = {}
+    
+    for name, _ in pairs(locations) do
+        if typeof(TeleportCore.FindLocation(name)) == "CFrame" then
+            table.insert(locationNames, name)
+        end
+    end
+    
+    table.sort(locationNames)
+    
+    if #locationNames > 0 then
+        local selectedLocation = ""
+        
+        local categoryDropdown = TeleportTab:CreateDropdown({
+            Name = "Select " .. category:gsub("&", "and"),
+            Options = locationNames,
+            CurrentOption = locationNames[1],
+            Flag = "Selected" .. category:gsub("%s+", ""),
+            Callback = function(Option)
+                selectedLocation = Option
+            end,
+        })
+        
+        TeleportTab:CreateButton({
+            Name = "Teleport to " .. category,
+            Callback = function()
+                if selectedLocation ~= "" then
+                    local success, message = TeleportCore.Teleport(selectedLocation)
+                    Utils.Notify("Teleport", message or ("Teleported to " .. selectedLocation), 2)
+                else
+                    Utils.Notify("Teleport", "No location selected", 2)
+                end
+            end,
+        })
+    end
 end
 
 --// MISC TAB
@@ -609,46 +609,40 @@ InfoTab:CreateLabel("Modified by: donitono")
 local SystemSection = InfoTab:CreateSection("System Status")
 
 InfoTab:CreateButton({
-    Name = "Check Automation Status",
+    Name = "Check System Status",
     Callback = function()
         local autoFishing = AutomationCore.GetFlag("autofishingloop")
         local autocast = AutomationCore.GetFlag("autocast")
         local autoreel = AutomationCore.GetFlag("autoreel")
         local superinstant = AutomationCore.GetFlag("superinstantreel")
-        
-        -- Get detection bypass status
-        local riskInfo = AutomationCore.GetRiskLevel()
-        local detectionStats = AutomationCore.GetDetectionStatus()
+        local totalLocations = #TeleportCore.GetAllLocationNames()
+        local currentPos = TeleportCore.GetCurrentGPS()
         
         local status = "🔄 Auto Fishing Loop: " .. (autoFishing and "ON" or "OFF") .. "\n" ..
                       "🎣 Auto Cast: " .. (autocast and "ON" or "OFF") .. "\n" ..
                       "⚡ Auto Reel: " .. (autoreel and "ON" or "OFF") .. "\n" ..
                       "🚀 Super Instant: " .. (superinstant and "ON" or "OFF") .. "\n" ..
-                      "🛡️ Detection Risk: " .. riskInfo.level .. "\n" ..
-                      "📊 Actions/Min: " .. (detectionStats.actionsLastMinute or 0)
+                      "📍 Total Locations: " .. totalLocations .. "\n" ..
+                      "🧭 Current Position: " .. (currentPos and (currentPos.x .. ", " .. currentPos.y .. ", " .. currentPos.z) or "Unknown")
         
-        Utils.Notify("System Status", status, 7)
+        Utils.Notify("System Status", status, 8)
     end,
 })
 
 InfoTab:CreateButton({
-    Name = "Detection Bypass Status",
+    Name = "Teleport System Info",
     Callback = function()
-        -- Print detailed detection status to console
-        AutomationCore.PrintDetectionStatus()
+        local categories = TeleportCore.GetCategories()
+        local totalLocations = TeleportCore.GetLocationCount()
+        local nearestName, _, distance = TeleportCore.GetNearestLocation()
         
-        -- Show summary in notification
-        local riskInfo = AutomationCore.GetRiskLevel()
-        local detectionStats = AutomationCore.GetDetectionStatus()
+        local info = "📊 Teleport System Status:\n" ..
+                    "📁 Categories: " .. #categories .. "\n" ..
+                    "📍 Total Locations: " .. totalLocations .. "\n" ..
+                    "🎯 Nearest: " .. (nearestName or "None") .. 
+                    (distance and distance < math.huge and (" (" .. math.floor(distance) .. "m)") or "")
         
-        local summary = "🛡️ Detection Bypass: ACTIVE\n" ..
-                       "📊 Risk Level: " .. riskInfo.level .. "\n" ..
-                       "⏱️ Total Actions: " .. (detectionStats.totalActions or 0) .. "\n" ..
-                       "📈 Last Minute: " .. (detectionStats.actionsLastMinute or 0) .. " actions\n" ..
-                       "🔄 Burst Mode: " .. (detectionStats.burstMode and "ACTIVE" or "INACTIVE")
-        
-        Utils.Notify("Detection Status", summary, 6)
-        print("💡 Check console for detailed detection bypass statistics!")
+        Utils.Notify("Teleport Info", info, 5)
     end,
 })
 

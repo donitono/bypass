@@ -18,19 +18,6 @@
     Note: All debug information and console outputs removed for clean code
 ]]--
 
--- Load Detection Bypass System (Optional)
-local DetectionBypass = nil
-pcall(function()
-    DetectionBypass = loadstring(game:HttpGet('https://raw.githubusercontent.com/donitono/bypass/main/detection_bypass.lua'))()
-    if DetectionBypass then
-        -- Configure for safer automation
-        DetectionBypass.SetConfig("VerboseMode", false)
-        DetectionBypass.SetConfig("AlertMode", false) 
-        DetectionBypass.SetConfig("MaxActionsPerMinute", 45)
-        DetectionBypass.SetConfig("DelayVariation", 0.4)
-    end
-end)
-
 -- Services
 local Players = game:GetService('Players')
 local ReplicatedStorage = game:GetService('ReplicatedStorage')
@@ -77,16 +64,6 @@ local autoFishingLoopActive = false
 local lastProgressTime = 0
 local selectedRodName = ""
 
--- Randomization Settings
-flags['enablerandomization'] = true
-flags['castpowermin'] = 70
-flags['castpowermax'] = 95
-flags['reelaccuracymin'] = 75
-flags['reelaccuracymax'] = 100
-flags['randomizedelay'] = true
-flags['delayvariationmin'] = 0.1
-flags['delayvariationmax'] = 0.8
-
 -- Zone Cast System
 flags['autozonecast'] = false
 local selectedZoneCast = ""
@@ -100,43 +77,7 @@ local lureMonitorConnection = nil
 flags['freezechar'] = false
 flags['freezecharmode'] = 'Toggled'
 
--- Safe execution wrapper
-local function safeExecute(actionFunc, actionName, baseDelay)
-    if DetectionBypass then
-        return DetectionBypass.SafeExecute(actionFunc, baseDelay or 0.5)
-    else
-        -- Fallback without detection bypass
-        local delay = baseDelay or 0.5
-        task.wait(delay + math.random() * 0.2) -- Add small random delay
-        return actionFunc()
-    end
-end
-
--- Randomization Helper Functions
-local function getRandomCastPower()
-    if flags['enablerandomization'] then
-        return math.random(flags['castpowermin'], flags['castpowermax'])
-    else
-        return 100 -- Default perfect cast
-    end
-end
-
-local function getRandomReelAccuracy()
-    if flags['enablerandomization'] then
-        return math.random(flags['reelaccuracymin'], flags['reelaccuracymax'])
-    else
-        return 100 -- Default perfect reel
-    end
-end
-
-local function getRandomDelay(baseDelay)
-    if flags['randomizedelay'] then
-        local variation = math.random() * (flags['delayvariationmax'] - flags['delayvariationmin']) + flags['delayvariationmin']
-        return baseDelay + variation
-    else
-        return baseDelay
-    end
-end
+--// UTILITY FUNCTIONS
 
 -- Find Rod Function
 function FindRod()
@@ -332,8 +273,7 @@ local function setupSuperInstantReel()
                         -- Ultra-instant catch when fish bites
                         if lureValue >= 95 or biteValue == true then
                             for i = 1, 5 do
-                                local reelAccuracy = getRandomReelAccuracy()
-                                ReplicatedStorage.events.reelfinished:FireServer(reelAccuracy, true)
+                                ReplicatedStorage.events.reelfinished:FireServer(100, true)
                             end
                             
                             local reelGui = lp.PlayerGui:FindFirstChild("reel")
@@ -371,8 +311,7 @@ local function setupSuperInstantReel()
                 end)
                 
                 pcall(function()
-                    local reelAccuracy = getRandomReelAccuracy()
-                    ReplicatedStorage.events.reelfinished:FireServer(reelAccuracy, true)
+                    ReplicatedStorage.events.reelfinished:FireServer(100, true)
                 end)
             end
         end)
@@ -657,8 +596,7 @@ local function runMainLoop()
                 if flags['noanimationautocast'] then
                     rod.events.cast:FireServer(-25, 1)
                 elseif flags['autocastarmmovement'] then
-                    local castPower = getRandomCastPower()
-                    rod.events.cast:FireServer(castPower, 1)
+                    rod.events.cast:FireServer(100, 1)
                 elseif flags['enhancedinstantbobber'] then
                     rod.events.cast:FireServer(-500, 1)
                 elseif flags['instantbobber'] then
@@ -678,22 +616,19 @@ local function runMainLoop()
         end
         
         if rod ~= nil and rod['values']['lure'].Value <= .001 then
-            -- Use safe execution for casting
-            safeExecute(function()
-                if flags['noanimationautocast'] then
-                    rod.events.cast:FireServer(-25, 1)
-                elseif flags['autocastarmmovement'] then
-                    local castPower = getRandomCastPower()
-                    rod.events.cast:FireServer(castPower, 1)
-                elseif flags['enhancedinstantbobber'] then
-                    rod.events.cast:FireServer(-500, 1)
-                elseif flags['instantbobber'] then
-                    rod.events.cast:FireServer(-250, 1)
-                else
-                    rod.events.cast:FireServer(-25, 1)
-                end
-                return true
-            end, "AutoCast", currentDelay)
+            task.wait(currentDelay)
+            
+            if flags['noanimationautocast'] then
+                rod.events.cast:FireServer(-25, 1)
+            elseif flags['autocastarmmovement'] then
+                rod.events.cast:FireServer(100, 1)
+            elseif flags['enhancedinstantbobber'] then
+                rod.events.cast:FireServer(-500, 1)
+            elseif flags['instantbobber'] then
+                rod.events.cast:FireServer(-250, 1)
+            else
+                rod.events.cast:FireServer(-25, 1)
+            end
         end
     end
     
@@ -702,11 +637,8 @@ local function runMainLoop()
         local rod = FindRod()
         local currentDelay = flags['autoreeldelay'] or 0.5
         if rod ~= nil and rod['values']['lure'].Value == 100 then
-            safeExecute(function()
-                local reelAccuracy = getRandomReelAccuracy()
-                ReplicatedStorage.events.reelfinished:FireServer(reelAccuracy, true)
-                return true
-            end, "AutoReel", currentDelay)
+            task.wait(currentDelay)
+            ReplicatedStorage.events.reelfinished:FireServer(100, true)
         end
     end
     
@@ -719,8 +651,7 @@ local function runMainLoop()
             
             if lureValue >= 98 or biteValue == true then
                 pcall(function()
-                    local reelAccuracy = getRandomReelAccuracy()
-                    ReplicatedStorage.events.reelfinished:FireServer(reelAccuracy, true)
+                    ReplicatedStorage.events.reelfinished:FireServer(100, true)
                     
                     -- Predictive autocast integration
                     if flags['predictiveautocast'] and flags['autocast'] then
@@ -775,31 +706,6 @@ function AutomationCore.GetRodsFromInventory()
     return getRodsFromInventory()
 end
 
-function AutomationCore.GetDetectionStatus()
-    if DetectionBypass then
-        return DetectionBypass.GetStatistics()
-    else
-        return {status = "Detection bypass not loaded", safe = true}
-    end
-end
-
-function AutomationCore.GetRiskLevel()
-    if DetectionBypass then
-        local riskLevel, riskText = DetectionBypass.GetRiskStatus()
-        return {level = riskLevel, text = riskText}
-    else
-        return {level = "UNKNOWN", text = "Detection bypass not available"}
-    end
-end
-
-function AutomationCore.PrintDetectionStatus()
-    if DetectionBypass then
-        DetectionBypass.PrintStatus()
-    else
-        print("🛡️ Detection Bypass: Not loaded - using basic safety delays")
-    end
-end
-
 function AutomationCore.Start()
     lastProgressTime = tick()
     
@@ -823,27 +729,6 @@ function AutomationCore.Stop()
     end
     
     superInstantReelActive = false
-end
-
--- Set flag function for UI integration
-function AutomationCore.SetFlag(flagName, value)
-    if flags[flagName] ~= nil then
-        flags[flagName] = value
-        return true
-    else
-        warn("Flag '" .. tostring(flagName) .. "' does not exist")
-        return false
-    end
-end
-
--- Get flag function for UI integration  
-function AutomationCore.GetFlag(flagName)
-    return flags[flagName]
-end
-
--- Get all flags for debugging
-function AutomationCore.GetAllFlags()
-    return flags
 end
 
 -- Initialize automation
