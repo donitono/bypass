@@ -252,6 +252,61 @@ local AppraiseDelaySlider = SettingsTab:CreateSlider({
     end,
 })
 
+-- Detection Bypass Settings
+local DetectionSection = SettingsTab:CreateSection("🛡️ Detection Bypass")
+
+local MaxActionsSlider = SettingsTab:CreateSlider({
+    Name = "Max Actions per Minute",
+    Range = {10, 90},
+    Increment = 5,
+    CurrentValue = 45,
+    Flag = "MaxActions",
+    Callback = function(Value)
+        -- Configure detection bypass if available
+        pcall(function()
+            local DetectionBypass = loadstring(game:HttpGet('https://raw.githubusercontent.com/donitono/bypass/main/detection_bypass.lua'))()
+            if DetectionBypass then
+                DetectionBypass.SetConfig("MaxActionsPerMinute", Value)
+                Utils.Notify("Rate Limit", "Set to " .. Value .. " actions/min", 2)
+            end
+        end)
+    end,
+})
+
+local DelayVariationSlider = SettingsTab:CreateSlider({
+    Name = "Delay Randomization",
+    Range = {0.0, 1.0},
+    Increment = 0.1,
+    CurrentValue = 0.4,
+    Flag = "DelayVariation",
+    Callback = function(Value)
+        pcall(function()
+            local DetectionBypass = loadstring(game:HttpGet('https://raw.githubusercontent.com/donitono/bypass/main/detection_bypass.lua'))()
+            if DetectionBypass then
+                DetectionBypass.SetConfig("DelayVariation", Value)
+                local percentage = math.floor(Value * 100)
+                Utils.Notify("Randomization", "Set to " .. percentage .. "% variation", 2)
+            end
+        end)
+    end,
+})
+
+local VerboseModeToggle = SettingsTab:CreateToggle({
+    Name = "Detection Debug Mode",
+    CurrentValue = false,
+    Flag = "VerboseMode",
+    Callback = function(Value)
+        pcall(function()
+            local DetectionBypass = loadstring(game:HttpGet('https://raw.githubusercontent.com/donitono/bypass/main/detection_bypass.lua'))()
+            if DetectionBypass then
+                DetectionBypass.SetConfig("VerboseMode", Value)
+                DetectionBypass.SetConfig("AlertMode", Value)
+                Utils.Notify("Debug Mode", Value and "Enabled - Check console" or "Disabled", 2)
+            end
+        end)
+    end,
+})
+
 --// VISUAL TAB
 local VisualTab = Window:CreateTab("👁️ Visual", 4483362458)
 
@@ -478,12 +533,39 @@ InfoTab:CreateButton({
         local autoreel = AutomationCore.GetFlag("autoreel")
         local superinstant = AutomationCore.GetFlag("superinstantreel")
         
+        -- Get detection bypass status
+        local riskInfo = AutomationCore.GetRiskLevel()
+        local detectionStats = AutomationCore.GetDetectionStatus()
+        
         local status = "🔄 Auto Fishing Loop: " .. (autoFishing and "ON" or "OFF") .. "\n" ..
                       "🎣 Auto Cast: " .. (autocast and "ON" or "OFF") .. "\n" ..
                       "⚡ Auto Reel: " .. (autoreel and "ON" or "OFF") .. "\n" ..
-                      "🚀 Super Instant: " .. (superinstant and "ON" or "OFF")
+                      "🚀 Super Instant: " .. (superinstant and "ON" or "OFF") .. "\n" ..
+                      "🛡️ Detection Risk: " .. riskInfo.level .. "\n" ..
+                      "📊 Actions/Min: " .. (detectionStats.actionsLastMinute or 0)
         
-        Utils.Notify("System Status", status, 5)
+        Utils.Notify("System Status", status, 7)
+    end,
+})
+
+InfoTab:CreateButton({
+    Name = "Detection Bypass Status",
+    Callback = function()
+        -- Print detailed detection status to console
+        AutomationCore.PrintDetectionStatus()
+        
+        -- Show summary in notification
+        local riskInfo = AutomationCore.GetRiskLevel()
+        local detectionStats = AutomationCore.GetDetectionStatus()
+        
+        local summary = "🛡️ Detection Bypass: ACTIVE\n" ..
+                       "📊 Risk Level: " .. riskInfo.level .. "\n" ..
+                       "⏱️ Total Actions: " .. (detectionStats.totalActions or 0) .. "\n" ..
+                       "📈 Last Minute: " .. (detectionStats.actionsLastMinute or 0) .. " actions\n" ..
+                       "🔄 Burst Mode: " .. (detectionStats.burstMode and "ACTIVE" or "INACTIVE")
+        
+        Utils.Notify("Detection Status", summary, 6)
+        print("💡 Check console for detailed detection bypass statistics!")
     end,
 })
 
