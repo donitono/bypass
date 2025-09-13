@@ -750,16 +750,45 @@ function TeleportCore.TeleportToCategory(category)
     return false, "No locations in category: " .. tostring(category)
 end
 
--- Add player teleport functions to TeleportCore
-TeleportCore.getAllPlayers = getAllPlayers
-TeleportCore.findPlayerByName = findPlayerByName
-TeleportCore.getPlayerNames = getPlayerNames
-TeleportCore.teleportToPlayer = teleportToPlayer
-TeleportCore.smoothTeleportToPlayer = smoothTeleportToPlayer
-TeleportCore.getPlayerDistance = getPlayerDistance
-TeleportCore.getNearestPlayer = getNearestPlayer
-TeleportCore.startAutoFollow = startAutoFollow
-TeleportCore.stopAutoFollow = stopAutoFollow
-TeleportCore.bringAllPlayers = bringAllPlayers
+-- Player teleport functions
+function TeleportCore.GetAllPlayers()
+    return getAllPlayers()
+end
+
+function TeleportCore.FindPlayerByName(playerName)
+    return findPlayerByName(playerName)
+end
+
+function TeleportCore.GetPlayerNames()
+    return getPlayerNames()
+end
+
+function TeleportCore.TeleportToPlayer(player)
+    return teleportToPlayer(player)
+end
+
+function TeleportCore.SmoothTeleportToPlayer(player, duration)
+    return smoothTeleportToPlayer(player, duration)
+end
+
+function TeleportCore.GetPlayerDistance(player)
+    return getPlayerDistance(player)
+end
+
+function TeleportCore.GetNearestPlayer()
+    return getNearestPlayer()
+end
+
+function TeleportCore.StartAutoFollow(player)
+    return startAutoFollow(player)
+end
+
+function TeleportCore.StopAutoFollow()
+    return stopAutoFollow()
+end
+
+function TeleportCore.BringAllPlayers()
+    return bringAllPlayers()
+end
 
 return TeleportCore

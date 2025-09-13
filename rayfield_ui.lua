@@ -545,7 +545,7 @@ local PlayerDropdown = TeleportTab:CreateDropdown({
 
 -- Function to refresh player list
 local function refreshPlayerList()
-    local playerNames = TeleportCore.getPlayerNames()
+    local playerNames = TeleportCore.GetPlayerNames()
     local dropdownOptions = {}
     
     for _, playerData in ipairs(playerNames) do
@@ -590,7 +590,7 @@ TeleportTab:CreateButton({
             return
         end
         
-        local playerNames = TeleportCore.getPlayerNames()
+        local playerNames = TeleportCore.GetPlayerNames()
         local targetPlayer = nil
         
         for _, playerData in ipairs(playerNames) do
@@ -601,7 +601,7 @@ TeleportTab:CreateButton({
         end
         
         if targetPlayer then
-            local success, message = TeleportCore.teleportToPlayer(targetPlayer)
+            local success, message = TeleportCore.TeleportToPlayer(targetPlayer)
             Utils.Notify("Player Teleport", message or ("Teleported to " .. targetPlayer.Name), 2)
         else
             Utils.Notify("Player Teleport", "Player not found or disconnected", 2)
@@ -612,9 +612,9 @@ TeleportTab:CreateButton({
 TeleportTab:CreateButton({
     Name = "🎯 Teleport to Nearest Player", 
     Callback = function()
-        local nearestPlayer, distance = TeleportCore.getNearestPlayer()
+        local nearestPlayer, distance = TeleportCore.GetNearestPlayer()
         if nearestPlayer then
-            local success, message = TeleportCore.teleportToPlayer(nearestPlayer)
+            local success, message = TeleportCore.TeleportToPlayer(nearestPlayer)
             Utils.Notify("Player Teleport", 
                 message or ("Teleported to " .. nearestPlayer.Name .. " (" .. math.floor(distance) .. "m away)"), 3)
         else
@@ -635,7 +635,7 @@ local AutoFollowToggle = TeleportTab:CreateToggle({
                 return
             end
             
-            local playerNames = TeleportCore.getPlayerNames()
+            local playerNames = TeleportCore.GetPlayerNames()
             local targetPlayer = nil
             
             for _, playerData in ipairs(playerNames) do
@@ -646,7 +646,7 @@ local AutoFollowToggle = TeleportTab:CreateToggle({
             end
             
             if targetPlayer then
-                local success, message = TeleportCore.startAutoFollow(targetPlayer)
+                local success, message = TeleportCore.StartAutoFollow(targetPlayer)
                 Utils.Notify("Auto Follow", message, 2)
                 followingPlayer = true
             else
@@ -654,7 +654,7 @@ local AutoFollowToggle = TeleportTab:CreateToggle({
                 AutoFollowToggle:Set(false)
             end
         else
-            local success, message = TeleportCore.stopAutoFollow()
+            local success, message = TeleportCore.StopAutoFollow()
             Utils.Notify("Auto Follow", message, 2)
             followingPlayer = false
         end
@@ -664,7 +664,7 @@ local AutoFollowToggle = TeleportTab:CreateToggle({
 TeleportTab:CreateButton({
     Name = "📢 Bring All Players (Admin)", 
     Callback = function()
-        local success, message = TeleportCore.bringAllPlayers()
+        local success, message = TeleportCore.BringAllPlayers()
         Utils.Notify("Bring Players", message, 3)
     end,
 })
@@ -673,7 +673,7 @@ TeleportTab:CreateButton({
 TeleportTab:CreateButton({
     Name = "📏 Show Player Distances",
     Callback = function()
-        local players = TeleportCore.getAllPlayers()
+        local players = TeleportCore.GetAllPlayers()
         if #players == 0 then
             Utils.Notify("Player Distances", "No players online", 2)
             return
@@ -681,7 +681,7 @@ TeleportTab:CreateButton({
         
         local distances = {}
         for _, player in ipairs(players) do
-            local distance = TeleportCore.getPlayerDistance(player)
+            local distance = TeleportCore.GetPlayerDistance(player)
             table.insert(distances, {
                 name = player.Name,
                 distance = math.floor(distance)
